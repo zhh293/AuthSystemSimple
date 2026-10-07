@@ -1,0 +1,2 @@
+com.authsystem.sso.client.starter.SsoClientAutoConfiguration
+com.authsystem.sso.client.starter.SsoClientHealthAutoConfiguration

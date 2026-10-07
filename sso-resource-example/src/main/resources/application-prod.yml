@@ -1,0 +1,12 @@
+dubbo:
+  protocol:
+    ssl-enabled: true
+  registry:
+    address: ${NACOS_ADDRESS}
+    parameters:
+      namespace: ${NACOS_NAMESPACE}
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+sso:
+  resource:
+    allowed-client-ids: ${SSO_RESOURCE_ALLOWED_CLIENT_IDS}

@@ -1,0 +1,9 @@
+# Design: Internal Resource-Token Validation RPC
+
+`TokenIntrospectionService` is a separate versioned contract in `sso-contracts`. The Dubbo provider rejects blank/oversized inputs, then calls `OAuth2AuthorizationService.findByToken` with the Access Token type. This reuses keyed-digest lookup and refresh-family revocation checks. It checks the access-token metadata/expiry and current account-enabled state before constructing a minimal result; inactive results contain no subject, client, scopes, or expiry.
+
+The plaintext bearer value exists only for the duration of the trusted RPC request and is never added to logs, metrics, or persistent audit. Production protection uses the existing Dubbo Triple mTLS and network controls; this RPC is not a public HTTP introspection endpoint. Resource servers remain responsible for enforcing the returned scopes and expiry, authorizing internal callers, and denying access if the RPC fails or times out.
+
+Typical caller behavior is: invoke `introspect(new TokenIntrospectionRequest(bearerValue))`, reject if the RPC errors or `isActive()` is false, and enforce the returned expiry and required scopes before serving the request. A separate `sso-resource-example` module demonstrates this consumer flow; it does not share the example RP's OAuth client session.
+
+The example validates the Bearer header size and whitespace, calls Dubbo with a bounded timeout and zero retries, checks an explicit allowed-client list and the required scope, returns `401` for inactive/expired tokens, `403` for disallowed clients or insufficient scope, and `503` on RPC errors. Production profiles require the Dubbo client certificate/key and trusted SSO server CA; Nacos RPC TLS JVM properties follow the deployment settings documented in the root README. Production HTTP ingress must use TLS and redact the Authorization header from access logs.

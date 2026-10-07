@@ -1,0 +1,7 @@
+target/
+**/target/
+.maven-cache/
+.env
+*.log
+.idea/
+.vscode/

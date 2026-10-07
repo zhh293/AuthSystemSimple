@@ -1,0 +1,7 @@
+# Design: Operator Provisioning CLI
+
+Add an isolated `sso-admin` Maven module with only JDBC, Spring Security crypto, MySQL, and Argon2's Bouncy Castle provider. Its `main` configures a JDBC connection from required `SSO_DB_URL`, `SSO_DB_USERNAME`, and `SSO_DB_PASSWORD` environment variables and has no component scan, web server, Dubbo bootstrap, or Nacos dependency.
+
+`user create` reads the password twice from `System.console()`, enforces a minimum length, and stores an Argon2id hash with the same Spring Security v5.8 parameters as `IdentityServiceProvider`. `client create` validates the client ID/type, one or more exact redirect URIs, and supported scopes. Confidential clients receive a generated 256-bit Base64URL secret. The server's explicit `PasswordEncoder` bean uses Spring Security's delegating format so the CLI's encoded client secret is verifiable by SAS. User/client inserts use prepared statements and `TransactionTemplate`; client, redirect URI, scope, and credential-safe audit records commit or roll back together. `SSO_ADMIN_ACTOR` is required and stored with the resource type and ID for accountability.
+
+Sensitive values are never accepted as process arguments. Passwords are not printed. The generated confidential secret is printed once to the operator's terminal after commit; operators must transfer it directly into the application's secret manager. Failures print a generic message without SQL parameters or exception details.

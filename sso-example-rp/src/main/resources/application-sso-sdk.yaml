@@ -1,0 +1,32 @@
+sso:
+  client:
+    enabled: true
+    issuer: ${SSO_ISSUER:http://localhost:8080}
+    client-id: ${SSO_CLIENT_ID}
+    client-secret: ${SSO_CLIENT_SECRET}
+    redirect-uri: ${SSO_REDIRECT_URI:http://localhost:8082/sso/callback}
+    local-store: ${SSO_LOCAL_STORE:true}
+    secure-cookie: ${SSO_COOKIE_SECURE:false}
+    cookie-same-site: Lax
+    family-lifetime: ${SSO_REFRESH_FAMILY_LIFETIME:30d}
+    protected-paths:
+      - /profile
+      - /private/**
+      - /sso/status
+    public-paths:
+      - /
+      - /error
+      - /sso/login
+      - /sso/callback
+      - /sso/logout
+    status-enabled: true
+server:
+  port: 8082
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          sso:
+            client-id: ${SSO_CLIENT_ID}
+            client-secret: ${SSO_CLIENT_SECRET}

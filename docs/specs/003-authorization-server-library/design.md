@@ -1,0 +1,17 @@
+# Design — Authorization Server Library
+
+Spring Authorization Server owns OAuth/OIDC state transitions and protocol serialization. `SsoRegisteredClientRepository` maps the existing client/client-redirect/client-scope tables to immutable `RegisteredClient` values. `JdbcOAuth2AuthorizationService` persists the protocol library's authorization aggregate. A separate key provider supplies RSA signing material.
+
+The SSO login form remains custom because it calls the existing Dubbo `IdentityService`. A successful login creates the opaque TGC in the identity service and writes an authenticated Spring Security context into the servlet session. On later requests, `TgcAuthenticationFilter` validates TGC over Dubbo and restores that context when the servlet session has expired.
+
+The public OAuth endpoints remain HTTP as required by OAuth/OIDC. Internal identity and client services stay on Dubbo/Nacos. The transitional custom authorization-code implementation is removed rather than called alongside Spring Authorization Server.
+
+`IdTokenDiscardingAuthorizationService` removes OIDC ID Tokens before delegating authorization writes to JDBC. `DigestingJdbcOAuth2AuthorizationService` replaces high-entropy code/token values with keyed HMAC-SHA-256 digests in the library's token lookup columns and computes the same digest for lookup; the raw value is restored only in memory for the matching request. The HMAC key is separate from the session and rate-limit keys. Production also requires encrypted database volumes/backups for identity and authorization metadata.
+
+For an OIDC refresh lookup, `IdTokenDiscardingAuthorizationService` adds a transient subject-only ID Token object when the persisted authorization has no ID Token. Spring Authorization Server's `JwtGenerator` dereferences the prior ID Token to carry optional `sid` and `auth_time` claims forward; the transient object lets that code run while the subsequent authorization save continues to discard the newly generated ID Token. This service currently does not issue those optional claims because its login flow does not provide `SessionInformation`.
+
+`FamilyAwareRefreshTokenGenerator` creates one family per authorization, stores only refresh-token digests in the family ledger, and keeps an absolute expiry from the first refresh token. Rotation locks the family row, verifies the submitted digest is current, then atomically consumes it and records the replacement digest. Reuse of a consumed token or concurrent stale rotation revokes the family and writes an audit event. Authorization lookup rejects access/refresh tokens attached to revoked or expired families. Expired family history is removed in bounded batches after the configured retention period.
+
+Global browser logout resolves the current TGC subject before revoking the TGC and marks every refresh family for that subject revoked. Opaque access tokens are rejected by introspection/UserInfo lookups after revocation. Per-client logout is intentionally a separate API decision and remains open.
+
+Spring Authorization Server's default OIDC UserInfo provider expects an ID Token with stored claims and its default bearer authentication path expects a JWT access token. This service uses opaque access tokens and does not persist ID Token claims, so `OpaqueUserInfoFilter` handles the configured UserInfo route before JWT bearer parsing. It performs the authorization-service lookup, validates active `openid` scope and family state, then reads only scope-approved claims from the live user row.

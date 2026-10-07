@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: ${SSO_DB_URL}
+    username: ${SSO_DB_USERNAME}
+    password: ${SSO_DB_PASSWORD}
+  data:
+    redis:
+      host: ${SSO_REDIS_HOST}
+      port: ${SSO_REDIS_PORT:6379}
+      password: ${SSO_REDIS_PASSWORD}
+      ssl:
+        enabled: true
+dubbo:
+  protocol:
+    ssl-enabled: true
+  registry:
+    address: ${NACOS_ADDRESS}
+    parameters:
+      namespace: ${NACOS_NAMESPACE}
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+sso:
+  identity:
+    credential-mode: ${SSO_IDENTITY_CREDENTIAL_MODE}
+  issuer: ${SSO_ISSUER}
+  cookie-secure: true
+  session-hmac-key: ${SSO_SESSION_HMAC_KEY}
+  rate-limit-hmac-key: ${SSO_RATE_LIMIT_HMAC_KEY}
+  oauth-state-hmac-key: ${SSO_OAUTH_STATE_HMAC_KEY}
+  token-storage-hmac-key: ${SSO_TOKEN_STORAGE_HMAC_KEY}
+  token-storage-hmac-previous-keys: ${SSO_TOKEN_STORAGE_HMAC_PREVIOUS_KEYS:}
+  id-token-ttl-seconds: ${SSO_ID_TOKEN_TTL_SECONDS:600}
+  oidc-keystore-path: ${SSO_OIDC_KEYSTORE_PATH}
+  oidc-keystore-password: ${SSO_OIDC_KEYSTORE_PASSWORD}
+  oidc-key-alias: ${SSO_OIDC_KEY_ALIAS:sso-signing}
+  oidc-previous-key-aliases: ${SSO_OIDC_PREVIOUS_KEY_ALIASES:}
+  authorization-storage-encrypted: ${SSO_AUTH_STORAGE_ENCRYPTED:false}
+  refresh-family-history-retention-seconds: ${SSO_REFRESH_FAMILY_HISTORY_RETENTION_SECONDS:2592000}

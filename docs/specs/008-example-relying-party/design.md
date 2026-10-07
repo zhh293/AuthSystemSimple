@@ -1,0 +1,7 @@
+# Design: Example OIDC Relying Party
+
+The standalone `sso-example-rp` module uses Boot's OAuth2 Client registration and `oauth2Login`. A custom `DefaultOAuth2AuthorizationRequestResolver` applies Spring Security's PKCE S256 customizer while the framework's HTTP session repository retains the authorization request (state, nonce, and verifier). The callback uses the framework's OIDC validation and fetches UserInfo from the SSO server using its opaque access token.
+
+The RP session cookie is HttpOnly, SameSite=Lax, and Secure by default. Operators may disable Secure only for an isolated local-development setup that cannot use localhost's secure-cookie behavior.
+
+OAuth authorized-client state remains in the RP's HTTP session. The custom CSRF-protected logout handler first submits the stored Refresh Token (or Access Token if no Refresh Token exists) to the configured SSO revocation URI using the registered confidential client's Basic authentication. Startup validates that the endpoint uses HTTP(S) on the configured issuer origin. The handler then removes the authorized-client entry, invalidates the local session, and expires the session cookie. If revocation fails or times out, the local session is still cleared and the response reports that remote revocation was unconfirmed; the app does not log or retain a copy of the token for retry. This demo does not clear the global TGC or other RP sessions. No RP components are imported by `sso-server`.

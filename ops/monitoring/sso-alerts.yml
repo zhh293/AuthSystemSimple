@@ -1,0 +1,86 @@
+groups:
+  - name: sso-authentication-center
+    rules:
+      - alert: SSOManagementEndpointDown
+        expr: up{job="sso-server"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: SSO management endpoint is unavailable
+          description: Prometheus has failed to scrape the SSO management endpoint for at least two minutes.
+
+      - alert: SSOAuthenticationDependencyErrors
+        expr: increase(sso_authentication_attempts_total{outcome="dependency_error"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSO authentication dependency errors detected
+          description: Identity-provider or authentication storage failures were recorded in the last five minutes.
+
+      - alert: SSOTgcValidationDependencyErrors
+        expr: increase(sso_tgc_validation_total{outcome="dependency_error"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: TGC session validation dependency errors detected
+          description: The SSO service could not confirm one or more TGC sessions through the identity RPC; affected requests failed closed with HTTP 503.
+
+      - alert: SSOResourceTokenIntrospectionDependencyErrors
+        expr: increase(sso_resource_token_validation_total{outcome="dependency_error"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Resource token introspection dependency errors detected
+          description: The SSO service could not confirm one or more opaque access tokens because an authorization or account dependency failed; resource services must fail closed.
+
+      - alert: SSORefreshTokenReplayDetected
+        expr: increase(sso_refresh_family_events_total{event="replay_rejected"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Refresh-token replay detected
+          description: A reused refresh token caused family revocation.
+
+      - alert: SSOLogoutRevocationFailures
+        expr: increase(sso_logout_dependency_failures_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Global logout revocation could not be confirmed
+          description: Server-side token or TGC revocation failed for one or more logout requests.
+
+      - alert: SSODirectorySyncUnavailable
+        expr: increase(sso_directory_sync_events_total{outcome=~"failure|conflict"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: SSO directory account synchronization is failing
+          description: Directory sync returned failures or rejected malformed/conflicting changes; directory-mode access will fail closed when its freshness window expires.
+
+      - alert: SSOLoginFailureRatioHigh
+        expr: |
+          (sum(rate(sso_authentication_attempts_total{outcome=~"failure|throttled"}[10m]))
+            / clamp_min(sum(rate(sso_authentication_attempts_total[10m])), 0.001)) > 0.5
+          and sum(increase(sso_authentication_attempts_total[10m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSO login failures or throttling are elevated
+          description: More than half of at least twenty authentication attempts failed or were throttled over the alert window.
+
+      - alert: SSOHTTPP95LatencyHigh
+        expr: histogram_quantile(0.95, sum by (le, endpoint) (rate(sso_http_endpoint_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSO HTTP endpoint P95 latency is above one second
+          description: At least one measured SSO endpoint exceeded the starter P95 latency threshold for ten minutes.

@@ -1,0 +1,22 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 0,
+  "id": null,
+  "panels": [
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}, "id": 1, "targets": [{"expr": "sum by (outcome) (rate(sso_authentication_attempts_total[$__rate_interval]))", "legendFormat": "{{outcome}}", "refId": "A"}], "title": "Authentication attempts by outcome", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}, "id": 2, "targets": [{"expr": "sum by (event) (rate(sso_refresh_family_events_total[$__rate_interval]))", "legendFormat": "{{event}}", "refId": "A"}], "title": "Refresh-token family events", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8}, "id": 3, "targets": [{"expr": "sum by (outcome) (rate(sso_tgc_validation_total[$__rate_interval]))", "legendFormat": "{{outcome}}", "refId": "A"}], "title": "TGC validation", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8}, "id": 4, "targets": [{"expr": "sum by (endpoint, status) (rate(sso_http_endpoint_requests_total[$__rate_interval]))", "legendFormat": "{{endpoint}} {{status}}", "refId": "A"}], "title": "HTTP request rate", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8}, "id": 5, "targets": [{"expr": "histogram_quantile(0.95, sum by (le, endpoint) (rate(sso_http_endpoint_duration_seconds_bucket[5m])))", "legendFormat": "{{endpoint}} P95", "refId": "A"}], "title": "HTTP endpoint P95 latency", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}, "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16}, "id": 6, "targets": [{"expr": "increase(sso_logout_dependency_failures_total[1h])", "legendFormat": "logout revocation failures", "refId": "A"}], "title": "Logout revocation failures (1h)", "type": "stat"}
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["sso", "security"],
+  "templating": {"list": [{"current": {"selected": true, "text": "Prometheus", "value": "Prometheus"}, "label": "Prometheus", "name": "DS_PROMETHEUS", "query": "prometheus", "type": "datasource"}]},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "SSO Authentication Center",
+  "uid": "sso-auth-center",
+  "version": 1
+}

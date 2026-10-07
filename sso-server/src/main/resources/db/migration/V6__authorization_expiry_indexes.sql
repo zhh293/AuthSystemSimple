@@ -1,0 +1,3 @@
+CREATE INDEX ix_oauth2_authorization_code_expiry ON oauth2_authorization (authorization_code_expires_at);
+CREATE INDEX ix_oauth2_authorization_access_expiry ON oauth2_authorization (access_token_expires_at);
+CREATE INDEX ix_oauth2_authorization_refresh_expiry ON oauth2_authorization (refresh_token_expires_at);

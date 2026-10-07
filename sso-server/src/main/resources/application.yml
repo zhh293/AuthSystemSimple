@@ -1,0 +1,82 @@
+server:
+  port: ${SSO_HTTP_PORT:8080}
+  servlet:
+    session:
+      timeout: ${SSO_LOGIN_SESSION_TTL:15m}
+      cookie:
+        http-only: true
+        secure: ${SSO_COOKIE_SECURE:true}
+        same-site: lax
+spring:
+  application:
+    name: sso-server
+  datasource:
+    url: ${SSO_DB_URL:jdbc:mysql://localhost:3306/sso?useUnicode=true&characterEncoding=utf8&preserveInstants=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    username: ${SSO_DB_USERNAME:sso}
+    password: ${SSO_DB_PASSWORD:sso-local-password}
+  data:
+    redis:
+      host: ${SSO_REDIS_HOST:localhost}
+      port: ${SSO_REDIS_PORT:6379}
+      password: ${SSO_REDIS_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+management:
+  server:
+    port: ${SSO_MANAGEMENT_PORT:8081}
+    address: ${SSO_MANAGEMENT_ADDRESS:127.0.0.1}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "sso.http.endpoint.duration": true
+dubbo:
+  application:
+    name: sso-server
+    qos-enable: false
+  protocol:
+    name: tri
+    port: ${SSO_DUBBO_PORT:50051}
+  registry:
+    address: ${NACOS_ADDRESS:nacos://localhost:8848}
+    parameters:
+      namespace: ${NACOS_NAMESPACE:public}
+    group: ${NACOS_GROUP:DEFAULT_GROUP}
+  scan:
+    base-packages: com.authsystem.sso
+sso:
+  identity:
+    credential-mode: ${SSO_IDENTITY_CREDENTIAL_MODE:database}
+    directory-sync-interval-ms: ${SSO_DIRECTORY_SYNC_INTERVAL_MS:30000}
+    directory-sync-max-staleness-seconds: ${SSO_DIRECTORY_SYNC_MAX_STALENESS_SECONDS:120}
+  issuer: ${SSO_ISSUER:http://localhost:8080}
+  session-cookie: ${SSO_SESSION_COOKIE:TGC}
+  cookie-path: ${SSO_COOKIE_PATH:/}
+  cookie-secure: ${SSO_COOKIE_SECURE:true}
+  session-hmac-key: ${SSO_SESSION_HMAC_KEY:local-development-only-change-this-key-before-use}
+  rate-limit-hmac-key: ${SSO_RATE_LIMIT_HMAC_KEY:local-development-only-change-this-rate-key}
+  oauth-state-hmac-key: ${SSO_OAUTH_STATE_HMAC_KEY:local-development-only-change-this-oauth-key}
+  token-storage-hmac-key: ${SSO_TOKEN_STORAGE_HMAC_KEY:local-development-only-change-this-token-key}
+  token-storage-hmac-previous-keys: ${SSO_TOKEN_STORAGE_HMAC_PREVIOUS_KEYS:}
+  oidc-keystore-path: ${SSO_OIDC_KEYSTORE_PATH:}
+  oidc-keystore-password: ${SSO_OIDC_KEYSTORE_PASSWORD:}
+  oidc-key-alias: ${SSO_OIDC_KEY_ALIAS:sso-signing}
+  oidc-previous-key-aliases: ${SSO_OIDC_PREVIOUS_KEY_ALIASES:}
+  session-ttl-seconds: ${SSO_SESSION_TTL_SECONDS:28800}
+  login-max-attempts: ${SSO_LOGIN_MAX_ATTEMPTS:10}
+  login-window-seconds: ${SSO_LOGIN_WINDOW_SECONDS:300}
+  authorization-code-ttl-seconds: ${SSO_AUTHORIZATION_CODE_TTL_SECONDS:90}
+  pending-authorization-ttl-seconds: ${SSO_PENDING_AUTHORIZATION_TTL_SECONDS:600}
+  access-token-ttl-seconds: ${SSO_ACCESS_TOKEN_TTL_SECONDS:600}
+  id-token-ttl-seconds: ${SSO_ID_TOKEN_TTL_SECONDS:600}
+  refresh-token-ttl-seconds: ${SSO_REFRESH_TOKEN_TTL_SECONDS:2592000}
+  authorization-storage-encrypted: ${SSO_AUTH_STORAGE_ENCRYPTED:false}
+  refresh-family-history-retention-seconds: ${SSO_REFRESH_FAMILY_HISTORY_RETENTION_SECONDS:2592000}

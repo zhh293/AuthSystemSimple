@@ -1,0 +1,25 @@
+server:
+  port: ${SSO_RESOURCE_HTTP_PORT:8082}
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: sso-resource-example
+dubbo:
+  application:
+    name: sso-resource-example
+    qos-enable: false
+  protocol:
+    name: tri
+    port: ${SSO_RESOURCE_DUBBO_PORT:50052}
+  registry:
+    address: ${NACOS_ADDRESS:nacos://localhost:8848}
+    parameters:
+      namespace: ${NACOS_NAMESPACE:public}
+    group: ${NACOS_GROUP:DEFAULT_GROUP}
+  scan:
+    base-packages: com.authsystem.sso.resource
+sso:
+  resource:
+    allowed-client-ids: ${SSO_RESOURCE_ALLOWED_CLIENT_IDS:example-rp}

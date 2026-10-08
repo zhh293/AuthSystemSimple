@@ -23,7 +23,6 @@ public class SsoProperties {
     private long refreshTokenTtlSeconds = 2592000;
     private boolean authorizationStorageEncrypted;
     private long refreshFamilyHistoryRetentionSeconds = 2592000;
-    private boolean loginCryptoEnabled = true;
     private String loginCryptoKeyId = "login-ecdh-2026-01";
     private long loginCryptoSessionTtlSeconds = 120;
     private int loginCryptoMaxSessionsPerIp = 30;
@@ -73,8 +72,6 @@ public class SsoProperties {
     public void setAuthorizationStorageEncrypted(boolean value) { authorizationStorageEncrypted = value; }
     public long getRefreshFamilyHistoryRetentionSeconds() { return refreshFamilyHistoryRetentionSeconds; }
     public void setRefreshFamilyHistoryRetentionSeconds(long value) { refreshFamilyHistoryRetentionSeconds = value; }
-    public boolean isLoginCryptoEnabled() { return loginCryptoEnabled; }
-    public void setLoginCryptoEnabled(boolean value) { loginCryptoEnabled = value; }
     public String getLoginCryptoKeyId() { return loginCryptoKeyId; }
     public void setLoginCryptoKeyId(String value) { loginCryptoKeyId = value; }
     public long getLoginCryptoSessionTtlSeconds() { return loginCryptoSessionTtlSeconds; }

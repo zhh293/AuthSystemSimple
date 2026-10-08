@@ -73,7 +73,6 @@ sso:
   session-ttl-seconds: ${SSO_SESSION_TTL_SECONDS:28800}
   login-max-attempts: ${SSO_LOGIN_MAX_ATTEMPTS:10}
   login-window-seconds: ${SSO_LOGIN_WINDOW_SECONDS:300}
-  login-crypto-enabled: ${SSO_LOGIN_CRYPTO_ENABLED:true}
   login-crypto-key-id: ${SSO_LOGIN_CRYPTO_KEY_ID:login-ecdh-2026-01}
   login-crypto-session-ttl-seconds: ${SSO_LOGIN_CRYPTO_SESSION_TTL_SECONDS:120}
   login-crypto-max-sessions-per-ip: ${SSO_LOGIN_CRYPTO_MAX_SESSIONS_PER_IP:30}

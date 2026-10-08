@@ -2,7 +2,6 @@
 
 import com.authsystem.sso.crypto.LoginCryptoEnvelope;
 import com.authsystem.sso.crypto.LoginCryptoService;
-import com.authsystem.sso.config.SsoProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,10 +18,9 @@ public final class LoginCryptoFilter extends OncePerRequestFilter {
     public static final String CREDENTIALS_ATTRIBUTE = LoginCryptoFilter.class.getName() + ".credentials";
     private final LoginCryptoService crypto;
     private final ObjectMapper mapper;
-    private final SsoProperties properties;
-    public LoginCryptoFilter(LoginCryptoService crypto, ObjectMapper mapper, SsoProperties properties) { this.crypto = crypto; this.mapper = mapper; this.properties = properties; }
+    public LoginCryptoFilter(LoginCryptoService crypto, ObjectMapper mapper) { this.crypto = crypto; this.mapper = mapper; }
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !properties.isLoginCryptoEnabled() || !"POST".equalsIgnoreCase(request.getMethod()) || !"/login/submit".equals(request.getRequestURI());
+        return !"POST".equalsIgnoreCase(request.getMethod()) || !"/login/submit".equals(request.getRequestURI());
     }
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {

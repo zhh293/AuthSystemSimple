@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.core.annotation.Order;
 import com.authsystem.sso.security.TgcAuthenticationFilter;
+import com.authsystem.sso.security.LoginCryptoFilter;
 import java.util.List;
 
 @Configuration
@@ -34,6 +35,13 @@ public class SecurityConfiguration {
     @Bean
     FilterRegistrationBean<OpaqueUserInfoFilter> userInfoFilterServletRegistration(OpaqueUserInfoFilter filter) {
         FilterRegistrationBean<OpaqueUserInfoFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<LoginCryptoFilter> loginCryptoFilterServletRegistration(LoginCryptoFilter filter) {
+        FilterRegistrationBean<LoginCryptoFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }
@@ -57,7 +65,7 @@ public class SecurityConfiguration {
 
     @Bean
     @Order(2)
-    SecurityFilterChain webSecurity(HttpSecurity http, TgcAuthenticationFilter tgcFilter,
+    SecurityFilterChain webSecurity(HttpSecurity http, TgcAuthenticationFilter tgcFilter, LoginCryptoFilter loginCryptoFilter,
             SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health", "/actuator/health/**").permitAll().anyRequest().permitAll())
@@ -67,6 +75,7 @@ public class SecurityConfiguration {
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; script-src 'self'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"))
                         .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
                 .addFilterBefore(tgcFilter, AnonymousAuthenticationFilter.class)
+                .addFilterBefore(loginCryptoFilter, AnonymousAuthenticationFilter.class)
                 .build();
     }
 }

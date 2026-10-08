@@ -6,6 +6,8 @@ import com.authsystem.sso.contracts.dto.AuthenticationRequest;
 import com.authsystem.sso.contracts.dto.AuthenticationResult;
 import com.authsystem.sso.contracts.dto.SessionLookupRequest;
 import com.authsystem.sso.observability.SsoMetrics;
+import com.authsystem.sso.crypto.LoginCredentials;
+import com.authsystem.sso.security.LoginCryptoFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Cookie;
@@ -26,7 +28,6 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -60,10 +61,18 @@ public class LoginController {
         return "login";
     }
 
-    @PostMapping(value = "/login/submit", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @PostMapping(value = "/login/submit", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public void login(@RequestParam String username, @RequestParam String password, HttpServletRequest request, HttpServletResponse response)
+    public void login(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        LoginCredentials credentials = (LoginCredentials) request.getAttribute(LoginCryptoFilter.CREDENTIALS_ATTRIBUTE);
+        if (credentials == null) {
+            response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+            response.setHeader(HttpHeaders.LOCATION, "/login?error=true");
+            return;
+        }
+        String username = credentials.username();
+        String password = credentials.password();
         if (username.length() > 128 || password.length() > 1024) {
             response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
             response.setStatus(HttpServletResponse.SC_SEE_OTHER);

@@ -23,6 +23,12 @@ public class SsoProperties {
     private long refreshTokenTtlSeconds = 2592000;
     private boolean authorizationStorageEncrypted;
     private long refreshFamilyHistoryRetentionSeconds = 2592000;
+    private boolean loginCryptoEnabled = true;
+    private String loginCryptoKeyId = "login-ecdh-2026-01";
+    private long loginCryptoSessionTtlSeconds = 120;
+    private int loginCryptoMaxSessionsPerIp = 30;
+    private long loginCryptoWindowSeconds = 60;
+    private long loginCryptoClockSkewSeconds = 300;
     private String oidcKeystorePath;
     private String oidcKeystorePassword;
     private String oidcKeyAlias = "sso-signing";
@@ -67,6 +73,18 @@ public class SsoProperties {
     public void setAuthorizationStorageEncrypted(boolean value) { authorizationStorageEncrypted = value; }
     public long getRefreshFamilyHistoryRetentionSeconds() { return refreshFamilyHistoryRetentionSeconds; }
     public void setRefreshFamilyHistoryRetentionSeconds(long value) { refreshFamilyHistoryRetentionSeconds = value; }
+    public boolean isLoginCryptoEnabled() { return loginCryptoEnabled; }
+    public void setLoginCryptoEnabled(boolean value) { loginCryptoEnabled = value; }
+    public String getLoginCryptoKeyId() { return loginCryptoKeyId; }
+    public void setLoginCryptoKeyId(String value) { loginCryptoKeyId = value; }
+    public long getLoginCryptoSessionTtlSeconds() { return loginCryptoSessionTtlSeconds; }
+    public void setLoginCryptoSessionTtlSeconds(long value) { loginCryptoSessionTtlSeconds = value; }
+    public int getLoginCryptoMaxSessionsPerIp() { return loginCryptoMaxSessionsPerIp; }
+    public void setLoginCryptoMaxSessionsPerIp(int value) { loginCryptoMaxSessionsPerIp = value; }
+    public long getLoginCryptoWindowSeconds() { return loginCryptoWindowSeconds; }
+    public void setLoginCryptoWindowSeconds(long value) { loginCryptoWindowSeconds = value; }
+    public long getLoginCryptoClockSkewSeconds() { return loginCryptoClockSkewSeconds; }
+    public void setLoginCryptoClockSkewSeconds(long value) { loginCryptoClockSkewSeconds = value; }
     public String getOidcKeystorePath() { return oidcKeystorePath; }
     public void setOidcKeystorePath(String value) { oidcKeystorePath = value; }
     public String getOidcKeystorePassword() { return oidcKeystorePassword; }

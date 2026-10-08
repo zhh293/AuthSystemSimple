@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>&#30331;&#24405; ? SSO &#35748;&#35777;&#20013;&#24515;</title>
+  <link rel="stylesheet" th:href="@{/login.css}">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <main class="login-layout">
+    <section class="hero" aria-label="&#35748;&#35777;&#20013;&#24515;&#20171;&#32461;">
+      <header class="brand"><span class="brand-symbol">S</span><span class="brand-name">SSO<span>/</span>IDENTITY</span></header>
+      <div class="hero-copy">
+        <p class="overline">&#20225;&#19994;&#32479;&#19968;&#36523;&#20221;&#24179;&#21488;</p>
+        <h1>&#19968;&#27425;&#30331;&#24405;<br><span>&#36827;&#20837;&#25152;&#26377;&#24037;&#20316;&#31354;&#38388;&#12290;</span></h1>
+        <p class="intro">&#20351;&#29992;&#20225;&#19994;&#36134;&#21495;&#23433;&#20840;&#35775;&#38382;&#24050;&#25480;&#26435;&#30340;&#24212;&#29992;&#19982;&#26381;&#21153;&#12290;</p>
+      </div>
+      <div class="hero-footer"><span class="pulse"></span><span>&#36523;&#20221;&#26381;&#21153;&#27491;&#24120;</span><i></i><span>OIDC ? TLS 1.3</span></div>
+      <div class="orb orb-one" aria-hidden="true"></div><div class="orb orb-two" aria-hidden="true"></div>
+    </section>
+    <section class="panel" aria-labelledby="login-title">
+      <div class="panel-heading"><div><p class="overline">WELCOME BACK</p><h2 id="login-title">&#27426;&#36814;&#22238;&#26469;</h2></div><span class="secure-badge">&#9679; &#23433;&#20840;&#36830;&#25509;</span></div>
+      <p class="panel-subtitle">&#30331;&#24405;&#20197;&#32487;&#32493;&#20320;&#30340;&#24037;&#20316;</p>
+      <div class="alert" th:if="${loginError}" role="alert"><strong>!</strong><span>&#36134;&#21495;&#25110;&#23494;&#30721;&#19981;&#27491;&#30830;&#65292;&#35831;&#37325;&#35797;&#12290;</span></div>
+      <form class="login-form" method="post" th:action="@{/login/submit}">
+        <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+        <div class="form-row"><label for="username">&#24037;&#21495;&#25110;&#36134;&#21495;</label><span class="field-note">&#24517;&#22635;</span><div class="input-wrap"><span class="input-icon">&#9673;</span><input id="username" name="username" type="text" autocomplete="username" maxlength="128" placeholder="name@company.com" required autofocus></div></div>
+        <div class="form-row password-row"><div class="label-line"><label for="password">&#30331;&#24405;&#23494;&#30721;</label><span class="field-note">&#24517;&#22635;</span></div><div class="input-wrap"><span class="input-icon lock-icon">&#9671;</span><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" placeholder="&#35831;&#36755;&#20837;&#23494;&#30721;" required><button class="toggle-password" type="button" aria-label="&#26174;&#31034;&#23494;&#30721;">&#26174;&#31034;</button></div><p class="caps-hint" hidden>&#27880;&#24847;&#22823;&#20889;&#38190;&#24050;&#24320;&#21551;</p></div>
+        <button class="submit-button" type="submit"><span>&#30331;&#24405;&#31995;&#32479;</span><span class="button-arrow">&#8594;</span></button>
+      </form>
+      <div class="panel-foot"><span class="shield">&#10003;</span><span>&#20320;&#30340;&#20250;&#35805;&#23558;&#36890;&#36807;&#21152;&#23494;&#36830;&#25509;&#20445;&#25252;&#12290;</span></div>
+    </section>
+  </main>
+  <footer><span>SSO AUTHENTICATION CENTER</span><span class="footer-dot">?</span><span>&#20225;&#19994;&#20869;&#37096;&#31995;&#32479;</span></footer>
+  <script th:src="@{/login.js}" defer></script>
+</body>
+</html>

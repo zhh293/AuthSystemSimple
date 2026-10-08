@@ -27,9 +27,11 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-@RestController
+@Controller
 public class LoginController {
     private final SsoProperties properties;
     private final SecurityContextRepository securityContextRepository;
@@ -47,20 +49,19 @@ public class LoginController {
     }
 
     @GetMapping(value = "/login", produces = MediaType.TEXT_HTML_VALUE)
-    public String loginPage(HttpServletRequest request, HttpServletResponse response) {
+    public String loginPage(HttpServletRequest request, HttpServletResponse response, Model model) {
         CsrfToken csrf = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
         if (csrf == null) csrf = (CsrfToken) request.getAttribute("_csrf");
         if (csrf == null) throw new IllegalStateException("CSRF token unavailable");
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setHeader("Referrer-Policy", "no-referrer");
-        return "<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>统一身份认证</title>"
-                + "<main><h1>统一身份认证</h1>" + ("true".equals(request.getParameter("error")) ? "<p role=\"alert\">账号或密码错误，请重试。</p>" : "")
-                + "<form method=\"post\" action=\"/login/submit\"><input type=\"hidden\" name=\"" + escape(csrf.getParameterName()) + "\" value=\"" + escape(csrf.getToken()) + "\">"
-                + "<label>账号 <input name=\"username\" autocomplete=\"username\" required maxlength=\"128\"></label>"
-                + "<label>密码 <input type=\"password\" name=\"password\" autocomplete=\"current-password\" required maxlength=\"1024\"></label><button>登录</button></form></main></html>";
+        model.addAttribute("csrf", csrf);
+        model.addAttribute("loginError", "true".equals(request.getParameter("error")));
+        return "login";
     }
 
     @PostMapping(value = "/login/submit", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @ResponseBody
     public void login(@RequestParam String username, @RequestParam String password, HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (username.length() > 128 || password.length() > 1024) {
@@ -114,6 +115,7 @@ public class LoginController {
     }
 
     @GetMapping("/session")
+    @ResponseBody
     public java.util.Map<String, Boolean> session() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean authenticated = authentication != null && authentication.isAuthenticated()
@@ -122,6 +124,7 @@ public class LoginController {
     }
 
     @PostMapping("/logout")
+    @ResponseBody
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         metrics.logout();
         String tgc = readSessionCookie(request);
@@ -149,5 +152,4 @@ public class LoginController {
         return null;
     }
 
-    private String escape(String value) { return value.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;"); }
 }

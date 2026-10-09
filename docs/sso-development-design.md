@@ -1,8 +1,8 @@
 # 公司统一身份认证中心（SSO）服务端开发设计文档
 
-> 版本：1.0  
-> 状态：开发基线  
-> 适用范围：公司内部 Web 应用、后端服务、统一认证服务  
+> 版本：1.0
+> 状态：开发基线
+> 适用范围：公司内部 Web 应用、后端服务、统一认证服务
 > 目标：开发公司自己的统一认证中心服务端，基于 OAuth 2.0 Authorization Code + PKCE 与 OpenID Connect，为旗下应用提供统一认证、TGC 单点登录、授权码和令牌签发、刷新、撤销及全局退出。本文以认证中心本身的实现为主体；应用后端的 Cookie、Redis 用户映射和 SDK 行为只作为协议边界/接入契约描述，不代表它们都属于认证中心代码库。
 
 
@@ -353,3 +353,223 @@ src/
 本文保留了“无有效 Access Token 时发起 SSO、TGC 有效时免密签 code、无 TGC 时登录并创建 TGC、后端以 code + verifier 换取三类令牌、校验 ID Token 后只保存用户映射、Access Token 过期时刷新、Refresh Token 失效后重新 SSO、退出时清理应用和认证中心会话”的主线。
 
 按本架构，`code_verifier` 和应用登录事务由应用后端保存；浏览器只参与授权跳转并在回调中携带 state/code。应用后端将 Access Token 写入 `{client_id}_access_token` Cookie，并把 Access Token 与已验证用户信息关联存入 Redis；Refresh Token 保存在服务端。ID Token 在服务端完成签名、`iss`、`aud`、有效期和 nonce 校验后，提取 `sub` 等必要信息写入 Redis，随后丢弃。
+
+
+
+## server端刷新逻辑
+
+
+## 一次刷新请求的完整过程
+
+假设客户端向授权服务器的 `/oauth2/token`（实际路径由 Spring Authorization Server 的 endpoint 配置决定）发送：
+
+```
+POST /oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=<旧的刷新令牌>
+```
+
+在这份代码里，已注册客户端允许 `authorization_code` 和 `refresh_token` 两种授权类型，且配置了 `reuseRefreshTokens(false)`，也就是刷新时采用令牌轮换：成功后会签发新的刷新令牌，旧令牌不能再次使用。/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/storage/SsoRegisteredClientRepository.java:57
+
+### 1\. 授权服务器先找到旧令牌对应的授权记录
+
+Spring 的 token endpoint 校验客户端和刷新请求后，会用旧刷新令牌查找对应的 `OAuth2Authorization`。自定义的 `DigestingJdbcOAuth2AuthorizationService` 覆写了查找逻辑：
+
+1. 对请求里的明文令牌用当前 HMAC 密钥及历史密钥计算摘要。
+2. 用摘要去数据库查授权记录，因为数据库保存的是摘要而不是明文。
+3. 查到后，再把请求中提供的明文令牌放回内存中的授权对象，供授权服务器后续处理。
+
+查找入口在 `findByToken()`；摘要匹配和恢复令牌的逻辑分别在 /E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/storage/DigestingJdbcOAuth2AuthorizationService.java:52 和 同文件的 restorePresentedToken() (/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/storage/DigestingJdbcOAuth2AuthorizationService.java:137)。
+
+这个查找阶段还会检查令牌是否已经使用、所属家族是否撤销或过期。发现已使用的旧令牌时，会撤销整个 family 并记录重放事件。/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/storage/DigestingJdbcOAuth2AuthorizationService.java:91
+
+### 2\. Spring 准备签发新令牌
+
+旧令牌通过查找和授权校验后，Spring 的刷新授权流程会生成新的访问令牌；由于客户端配置了不复用刷新令牌，还会请求 token generator 生成新的刷新令牌。
+
+生成器在授权服务器配置中以委托链的形式注册：JWT、访问令牌由前面的生成器处理，刷新令牌交给 `FamilyAwareRefreshTokenGenerator` 包装的默认刷新令牌生成器处理。/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/config/AuthorizationServerConfiguration.java:90
+
+## `generate()` 刷新分支逐行说明
+
+### 3\. 非刷新令牌直接委托
+
+```
+if (!OAuth2TokenType.REFRESH_TOKEN.equals(context.getTokenType()))
+    return delegate.generate(context);
+```
+
+这个生成器虽然注册在总的 token generator 链里，但只额外处理刷新令牌。生成访问令牌时，它会直接调用包装的默认生成器，不做 family 数据库操作。
+
+### 4\. 先生成一个候选的新刷新令牌
+
+```
+OAuth2Token generated = delegate.generate(context);
+if (!(generated instanceof OAuth2RefreshToken refreshToken)) return generated;
+```
+
+Spring 的默认 `OAuth2RefreshTokenGenerator` 先创建新令牌。此时它只是候选值，还要经过下面的 family 轮换检查，成功后才会由授权服务器保存并返回给客户端。
+
+### 5\. 确认这是刷新授权，并准备家族信息
+
+```
+AuthorizationGrantType grantType = context.getAuthorizationGrantType();
+OAuth2Authorization authorization = context.getAuthorization();
+if (authorization == null) throw ...
+String familyId = authorization.getId();
+```
+
+对于 `grant_type=refresh_token`，授权对象应当包含正在使用的旧刷新令牌。`authorization.getId()` 被用作 family ID，所以同一授权记录下的刷新令牌轮换都归在同一个家族中。
+
+接着计算新令牌的摘要：
+
+```
+String newDigest = tokenDigest(refreshToken.getTokenValue());
+```
+
+摘要使用 HMAC-SHA256，而不是直接把令牌明文写进 family 表。
+
+### 6\. 取出旧刷新令牌并准备兼容密钥轮换
+
+```
+OAuth2Authorization.Token<OAuth2RefreshToken> previous =
+    authorization.getRefreshToken();
+if (previous == null) throw INVALID_GRANT;
+
+List<String> previousDigests =
+    tokenDigests(previous.getToken().getTokenValue());
+```
+
+如果授权对象里没有旧刷新令牌，就拒绝请求，返回 `invalid_grant`。
+
+这里对旧令牌尝试当前及历史 HMAC 密钥，是为了支持 HMAC 密钥轮换：旧记录可能是用之前的密钥生成摘要的。相关摘要实现见 /E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/security/FamilyAwareRefreshTokenGenerator.java:126。
+
+### 7\. 在事务中锁定并验证 family
+
+刷新分支调用：
+
+```
+Instant absoluteExpiry =
+    rotate(context, familyId, previousDigests, newDigest,
+           refreshToken.getIssuedAt());
+```
+
+`rotate()` 在事务中用 `SELECT ... FOR UPDATE` 锁住 family 行：
+
+```
+select current_token_digest, expires_at, revoked
+from oauth_refresh_token_family
+where family_id = ?
+for update
+```
+
+这一步防止两个并发请求同时拿同一个旧令牌刷新并都成功。之后有几种结果：
+
+- **找不到 family 行**：轮换失败，最终拒绝刷新。
+- **family 已撤销或已超过绝对过期时间**：标记为撤销并拒绝。
+- **旧令牌摘要不是 family 当前摘要**：认为旧令牌不是当前有效令牌，也按重放处理，撤销 family 并拒绝。
+- **验证通过**：把 family 的 `current_token_digest` 从旧令牌摘要更新成新令牌摘要。
+
+验证和并发锁定在 rotate() (/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/security/FamilyAwareRefreshTokenGenerator.java:83)。
+
+### 8\. 消耗旧令牌、登记新令牌
+
+验证通过后，事务中还会做两件事：
+
+```
+update oauth_refresh_token_history
+set token_status = 'USED', consumed_at = ?
+where token_digest = ?
+  and family_id = ?
+  and token_status = 'ACTIVE'
+```
+
+这条更新必须恰好改到一行；否则也视作异常或重放，撤销 family 并拒绝。
+
+接着把新令牌写入 history，状态为 `ACTIVE`：
+
+```
+insert into oauth_refresh_token_history
+    (token_digest, family_id, token_status, issued_at)
+values (?, ?, 'ACTIVE', ?)
+```
+
+因此正常轮换前后的记录类似：
+
+| 时点 | family 当前摘要 | 旧令牌状态 | 新令牌状态 |
+|---|---|---|---|
+| 刷新前 | 旧令牌摘要 | `ACTIVE` | 不存在 |
+| 刷新后 | 新令牌摘要 | `USED` | `ACTIVE` |
+
+这些数据库操作都在 `TransactionTemplate` 的事务中执行，整体见 rotate() (/E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/security/FamilyAwareRefreshTokenGenerator.java:85)。
+
+### 9\. 失败时撤销或记账，并返回 `invalid_grant`
+
+事务返回失败结果后，代码在事务外：
+
+- 对重放情形增加 `REPLAY_REJECTED` 指标，并写入 `REFRESH_TOKEN_REPLAY` 审计事件。
+- 对其他无效情况增加 `INVALID_REJECTED` 指标。
+- 抛出 `OAuth2AuthenticationException(INVALID_GRANT)`。
+
+所以客户端收到的是刷新失败，通常表现为 OAuth 错误 `invalid_grant`，不会收到新令牌。
+
+注意：`rotate()` 把撤销操作和失败结果一起在事务里完成，然后才在事务外抛异常。这使得撤销更新可以先提交，不会因为随后抛异常而随整个事务回滚。
+
+### 10\. 将新令牌有效期限制在 family 的绝对过期时间内
+
+轮换成功后，`rotate()` 返回 family 的绝对过期时间。代码把新刷新令牌的过期时间设置为以下两者中更早的一个：
+
+```
+Instant tokenExpiry =
+    refreshToken.getExpiresAt().isBefore(absoluteExpiry)
+        ? refreshToken.getExpiresAt()
+        : absoluteExpiry;
+```
+
+也就是说每次刷新虽然拿到新令牌，但不会让整个登录会话一直通过连续刷新无限延长。新令牌最晚只能用到 family 的绝对过期时间。
+
+最后返回令牌对象：
+
+```
+return new OAuth2RefreshToken(
+    refreshToken.getTokenValue(),
+    refreshToken.getIssuedAt(),
+    tokenExpiry);
+```
+
+授权服务器接下来会保存更新后的授权记录，并把新的访问令牌和刷新令牌返回给客户端。由于授权记录服务也会把 token 值摘要化存储，所以数据库不需要保留刷新令牌明文。
+
+## 用一句话概括刷新机制
+
+客户端拿旧刷新令牌请求 `/oauth/token`；授权服务器确认旧令牌有效后生成新令牌，再用数据库行锁确保旧令牌只成功消费一次，把旧令牌标成 `USED`、新令牌设为 family 当前令牌，并让刷新令牌不超过 family 的绝对过期时间。
+
+代码里要特别区分两类校验：`DigestingJdbcOAuth2AuthorizationService` 在授权服务器正式进入刷新生成阶段前就会查令牌并拦截已使用或已撤销的令牌；`FamilyAwareRefreshTokenGenerator.rotate()` 又会在加锁的事务里做一次当前令牌校验，后者负责防并发双花。
+```
+  Worked for 29s • 12:24
+```
+旧令牌有效的条件是什么
+
+旧刷新令牌需要同时满足这些条件，授权服务器才会接受它：
+
+1. **能在授权记录中查到**：服务用当前或历史 HMAC 密钥计算令牌摘要，并据此找到对应授权记录。
+2. **未过期、未失效**：令牌本身仍有效，所属 family 也没有撤销，且 family 的绝对过期时间还没到。
+3. **此前没有被消费**：history 中不能标为 `USED`。
+4. **它是 family 当前的令牌**：摘要必须匹配 family 表里的 `current_token_digest`。
+5. **客户端和授权校验通过**：请求中的客户端身份、`grant_type=refresh_token` 等还要通过 Spring Authorization Server 的常规校验。
+
+对应代码在 /E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/storage/DigestingJdbcOAuth2AuthorizationService.java:52 和 /E:/AuthSystemSimple/sso-server/src/main/java/com/authsystem/sso/security/FamilyAwareRefreshTokenGenerator.java:83。
+
+若客户端再次提交已用过的旧令牌，代码会将整个令牌 family 撤销，拒绝刷新
+
+
+
+
+
+## 对于上面响应的处理，客户端sdk是这么做的
+
+- **刷新令牌过期或无效**：认证中心的 `/oauth2/token` 通常返回 **HTTP 400**，响应体包含 OAuth 错误 `invalid_grant`，不是 401。OAuth token endpoint 对无效授权凭证使用 `invalid_grant`；客户端 SDK 把这个拒绝当作刷新失败处理。
+- **客户端处理失败**：`SsoSessionService.resolve()` 捕获刷新失败后会删除本地 token 映射并返回空会话。/E:/AuthSystemSimple/sso-client-core/src/main/java/com/authsystem/sso/client/session/SsoSessionService.java:133 /E:/AuthSystemSimple/sso-client-core/src/main/java/com/authsystem/sso/client/protocol/OAuthTokenClient.java:152
+- **用户当前的业务请求**：SDK 认证过滤器随后清除浏览器的 access token Cookie。若请求是 API/AJAX，返回 **401**；若是页面请求，则跳转到本地登录入口，再发起 SSO 登录。/E:/AuthSystemSimple/sso-client-spring-boot-starter/src/main/java/com/authsystem/sso/client/starter/SsoAuthenticationFilter.java:43
+
+所以用户看到的通常是：API 请求收到 401，或者页面被引导重新登录；而 **401 是业务应用给用户请求的响应，认证中心给 SDK 的刷新失败响应通常是 400 `invalid_grant`**&#12290;

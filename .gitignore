@@ -3,5 +3,6 @@ target/
 .maven-cache/
 .env
 *.log
+zhh2.pem
 .idea/
 .vscode/

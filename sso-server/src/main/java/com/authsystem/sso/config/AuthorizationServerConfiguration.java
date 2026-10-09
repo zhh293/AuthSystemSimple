@@ -1,6 +1,5 @@
 package com.authsystem.sso.config;
 
-import com.authsystem.sso.storage.SsoRegisteredClientRepository;
 import com.authsystem.sso.storage.IdTokenDiscardingAuthorizationService;
 import com.authsystem.sso.storage.DigestingJdbcOAuth2AuthorizationService;
 import com.authsystem.sso.storage.AuditRepository;
@@ -70,9 +69,6 @@ public class AuthorizationServerConfiguration {
                 .addFilterBefore(tgcFilter, AnonymousAuthenticationFilter.class);
         return http.build();
     }
-
-    @Bean
-    RegisteredClientRepository registeredClientRepository(SsoRegisteredClientRepository repository) { return repository; }
 
     @Bean
     OAuth2AuthorizationService authorizationService(JdbcTemplate jdbc, RegisteredClientRepository clients,

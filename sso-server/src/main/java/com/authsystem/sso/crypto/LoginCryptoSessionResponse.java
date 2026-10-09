@@ -1,4 +1,4 @@
-﻿package com.authsystem.sso.crypto;
+package com.authsystem.sso.crypto;
 
 import java.util.Map;
 

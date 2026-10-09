@@ -1,4 +1,4 @@
-﻿package com.authsystem.sso.web;
+package com.authsystem.sso.web;
 
 import com.authsystem.sso.crypto.LoginCryptoService;
 import com.authsystem.sso.crypto.LoginCryptoSessionResponse;

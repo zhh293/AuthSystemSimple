@@ -1,4 +1,4 @@
-﻿package com.authsystem.sso.security;
+package com.authsystem.sso.security;
 
 import com.authsystem.sso.crypto.LoginCryptoEnvelope;
 import com.authsystem.sso.crypto.LoginCryptoService;

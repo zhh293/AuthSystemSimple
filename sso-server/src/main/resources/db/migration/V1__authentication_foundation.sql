@@ -23,8 +23,9 @@ CREATE TABLE oauth_client_redirect_uri (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     client_id VARCHAR(128) NOT NULL,
     redirect_uri VARCHAR(2048) NOT NULL,
+    redirect_uri_hash BINARY(32) GENERATED ALWAYS AS (UNHEX(SHA2(redirect_uri, 256))) STORED,
     CONSTRAINT fk_redirect_client FOREIGN KEY (client_id) REFERENCES oauth_client(client_id) ON DELETE CASCADE,
-    UNIQUE KEY uq_client_redirect (client_id, redirect_uri)
+    UNIQUE KEY uq_client_redirect (client_id, redirect_uri_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE oauth_client_scope (

@@ -1,4 +1,4 @@
-﻿package com.authsystem.sso.crypto;
+package com.authsystem.sso.crypto;
 
 import com.authsystem.sso.config.SsoProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -136,7 +136,7 @@ public class LoginCryptoService {
         if (x.length != 32 || y.length != 32) throw new IllegalArgumentException("coordinate size");
         java.security.AlgorithmParameters params = java.security.AlgorithmParameters.getInstance("EC");
         params.init(new ECGenParameterSpec("secp256r1")); ECParameterSpec spec = params.getParameterSpec(ECParameterSpec.class);
-        return KeyFactory.getInstance("EC").generatePublic(new ECPublicKeySpec(new java.security.spec.ECPoint(unsigned(x), unsigned(y)), spec));
+        return KeyFactory.getInstance("EC").generatePublic(new ECPublicKeySpec(unsigned(x, y), spec));
     }
 
     private Map<String, String> publicJwk(ECPublicKey key) {

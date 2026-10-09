@@ -1,0 +1,5 @@
+**
+!Dockerfile
+!sso-server/
+!sso-server/target/
+!sso-server/target/sso-server-0.1.0-SNAPSHOT.jar

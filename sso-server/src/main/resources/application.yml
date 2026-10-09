@@ -10,6 +10,11 @@ server:
 spring:
   application:
     name: sso-server
+  session:
+    store-type: redis
+    timeout: ${SSO_LOGIN_SESSION_TTL:15m}
+    redis:
+      namespace: sso:server:sessions
   datasource:
     url: ${SSO_DB_URL:jdbc:mysql://localhost:3306/sso?useUnicode=true&characterEncoding=utf8&preserveInstants=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
     username: ${SSO_DB_USERNAME:sso}

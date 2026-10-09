@@ -14,7 +14,8 @@ public class SsoSdkSecurityConfiguration {
     @Bean
     SecurityFilterChain sdkRelyingParty(HttpSecurity http,SsoHttpSecurityConfigurer sso) throws Exception {
         http.with(sso,Customizer.withDefaults())
-                .authorizeHttpRequests(auth->auth.requestMatchers("/","/error").permitAll().anyRequest().authenticated());
+                .authorizeHttpRequests(auth->auth.requestMatchers("/", "/error", "/sso/login",
+                        "/sso/callback", "/sso/logout").permitAll().anyRequest().authenticated());
         return http.build();
     }
 }

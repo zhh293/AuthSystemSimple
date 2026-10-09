@@ -8,11 +8,18 @@ sso:
     local-store: ${SSO_LOCAL_STORE:true}
     secure-cookie: ${SSO_COOKIE_SECURE:false}
     cookie-same-site: Lax
+    scopes:
+      - openid
+      - profile
+      - email
+      - resource.read
     family-lifetime: ${SSO_REFRESH_FAMILY_LIFETIME:30d}
+    refresh-skew: ${SSO_REFRESH_SKEW:30s}
     protected-paths:
       - /profile
       - /private/**
       - /sso/status
+      - /logout-form
     public-paths:
       - /
       - /error

@@ -72,6 +72,12 @@ public final class DigestingJdbcOAuth2AuthorizationService extends JdbcOAuth2Aut
                 return restorePresentedToken(authorization, token, tokenType);
             }
         }
+        // Preserve tokens written before digest storage was enabled or before its JDBC type handling was corrected.
+        OAuth2Authorization legacy = super.findByToken(token, tokenType);
+        if (legacy != null) {
+            if (isFamilyRevoked(legacy.getId())) return null;
+            return restorePresentedToken(legacy, token, tokenType);
+        }
         return null;
     }
 
@@ -129,6 +135,9 @@ public final class DigestingJdbcOAuth2AuthorizationService extends JdbcOAuth2Aut
                     result.set(index, new SqlParameterValue(parameter.getSqlType(),
                     (DIGEST_PREFIX + digest(text, hmacKeys.get(0))).getBytes(StandardCharsets.UTF_8)));
                 }
+            } else if (value instanceof String text && !text.isBlank() && !text.startsWith(DIGEST_PREFIX)) {
+                result.set(index, new SqlParameterValue(parameter.getSqlType(),
+                        (DIGEST_PREFIX + digest(text, hmacKeys.get(0))).getBytes(StandardCharsets.UTF_8)));
             }
         }
         return result;

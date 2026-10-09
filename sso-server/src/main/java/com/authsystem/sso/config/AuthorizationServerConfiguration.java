@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
@@ -54,7 +55,7 @@ public class AuthorizationServerConfiguration {
     @Order(1)
     SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http, TgcAuthenticationFilter tgcFilter,
             OpaqueUserInfoFilter opaqueUserInfoFilter, SecurityContextRepository securityContextRepository,
-            OAuth2TokenGenerator<?> tokenGenerator) throws Exception {
+            OAuth2TokenGenerator<?> tokenGenerator, AuthorizationServerSettings authorizationServerSettings) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServer = OAuth2AuthorizationServerConfigurer.authorizationServer();
         http.securityMatcher(authorizationServer.getEndpointsMatcher())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServer.getEndpointsMatcher()))
@@ -62,7 +63,9 @@ public class AuthorizationServerConfiguration {
                         .tokenGenerator(tokenGenerator)
                         .oidc(Customizer.withDefaults())
                         .authorizationEndpoint(endpoint -> endpoint.authenticationProviders(requireStateNonceAndS256())))
-                .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.POST, authorizationServerSettings.getTokenEndpoint()).permitAll()
+                        .anyRequest().authenticated())
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
                 .addFilterBefore(opaqueUserInfoFilter, BearerTokenAuthenticationFilter.class)

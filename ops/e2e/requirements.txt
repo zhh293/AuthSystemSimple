@@ -1,0 +1,4 @@
+cryptography==44.0.3
+PyMySQL==1.1.2
+pytest==8.4.2
+requests==2.32.5

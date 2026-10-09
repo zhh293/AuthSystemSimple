@@ -1,0 +1,152 @@
+services:
+  mysql:
+    image: ${SSO_E2E_MYSQL_IMAGE:-mysql:8.4}
+    mem_limit: 384m
+    command: ["--innodb-buffer-pool-size=64M", "--max-connections=40", "--performance-schema=OFF"]
+    environment:
+      MYSQL_DATABASE: sso
+      MYSQL_USER: sso
+      MYSQL_PASSWORD: e2e-db-password
+      MYSQL_ROOT_PASSWORD: e2e-root-password
+    ports:
+      - "127.0.0.1:23306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - e2e
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  redis:
+    image: ${SSO_E2E_REDIS_IMAGE:-redis:7.4}
+    mem_limit: 96m
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:26379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - e2e
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  oidc-keygen:
+    image: eclipse-temurin:17-jre-jammy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        if ! keytool -list -alias e2e-signing -keystore /run/secrets/e2e-keystore.p12
+        -storepass e2e-only-keystore-password >/dev/null 2>&1; then
+        keytool -genkeypair -alias e2e-signing -keyalg RSA -keysize 2048
+        -dname 'CN=SSO E2E only' -validity 365 -storetype PKCS12
+        -keystore /run/secrets/e2e-keystore.p12
+        -storepass e2e-only-keystore-password -keypass e2e-only-keystore-password
+        -noprompt; fi;
+        chmod 444 /run/secrets/e2e-keystore.p12
+    volumes:
+      - e2e-secrets:/run/secrets
+  sso-server:
+    mem_limit: 512m
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      oidc-keygen:
+        condition: service_completed_successfully
+    environment:
+      SSO_HTTP_PORT: 8080
+      SSO_DB_URL: jdbc:mysql://mysql:3306/sso?useUnicode=true&characterEncoding=utf8&preserveInstants=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      SSO_DB_USERNAME: sso
+      SSO_DB_PASSWORD: e2e-db-password
+      SSO_REDIS_HOST: redis
+      SSO_REDIS_PORT: 6379
+      SSO_IDENTITY_CREDENTIAL_MODE: database
+      SSO_ISSUER: http://localhost:28080
+      SSO_COOKIE_SECURE: "false"
+      SSO_SESSION_HMAC_KEY: e2e-only-session-hmac-key-change-for-real-use
+      SSO_RATE_LIMIT_HMAC_KEY: e2e-only-rate-hmac-key-change-for-real-use
+      SSO_OAUTH_STATE_HMAC_KEY: e2e-only-state-hmac-key-change-for-real-use
+      SSO_TOKEN_STORAGE_HMAC_KEY: e2e-only-token-hmac-key-change-for-real-use
+      SSO_OIDC_KEYSTORE_PATH: /run/secrets/e2e-keystore.p12
+      SSO_OIDC_KEYSTORE_PASSWORD: e2e-only-keystore-password
+      SSO_OIDC_KEY_ALIAS: e2e-signing
+      SSO_ACCESS_TOKEN_TTL_SECONDS: 60
+      SSO_MANAGEMENT_ADDRESS: 0.0.0.0
+      NACOS_ADDRESS: ${SSO_E2E_NACOS_ADDRESS:-nacos://101.201.153.254:8848}
+      NACOS_NAMESPACE: ${SSO_E2E_NACOS_NAMESPACE:-public}
+      NACOS_GROUP: ${SSO_E2E_NACOS_GROUP:-SSO_E2E}
+      DUBBO_REGISTRY_USE_AS_CONFIG_CENTER: "false"
+      DUBBO_REGISTRY_USE_AS_METADATA_CENTER: "false"
+      DUBBO_APPLICATION_METADATA_TYPE: local
+      DUBBO_APPLICATION_REGISTER_MODE: interface
+      DUBBO_REGISTRY_PARAMETERS_USERNAME: ${SSO_E2E_NACOS_USERNAME:-}
+      DUBBO_REGISTRY_PARAMETERS_PASSWORD: ${SSO_E2E_NACOS_PASSWORD:-}
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m
+    ports:
+      - "127.0.0.1:28080:8080"
+      - "127.0.0.1:28081:8081"
+    volumes:
+      - e2e-secrets:/run/secrets:ro
+    networks:
+      - e2e
+  rp:
+    mem_limit: 384m
+    build:
+      context: ../..
+      dockerfile: ops/e2e/Dockerfile-rp
+    network_mode: host
+    depends_on:
+      - sso-server
+    environment:
+      SPRING_PROFILES_ACTIVE: sso-sdk
+      SSO_ISSUER: http://localhost:28080
+      SSO_CLIENT_ID: e2e-portal
+      SSO_CLIENT_SECRET: e2e-only-client-secret
+      SSO_REDIRECT_URI: http://localhost:28082/sso/callback
+      SSO_LOCAL_STORE: "true"
+      SSO_COOKIE_SECURE: "false"
+      SSO_CLIENT_SCOPES: openid,profile,email,resource.read
+      SERVER_PORT: 28082
+      SSO_REFRESH_SKEW: 5s
+      SERVER_SERVLET_SESSION_COOKIE_NAME: RPSESSION
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: "false"
+      JAVA_TOOL_OPTIONS: -Xms32m -Xmx160m -XX:MaxMetaspaceSize=120m -XX:ReservedCodeCacheSize=48m
+  resource:
+    mem_limit: 384m
+    build:
+      context: ../..
+      dockerfile: ops/e2e/Dockerfile-resource
+    depends_on:
+      - sso-server
+    environment:
+      SSO_RESOURCE_HTTP_PORT: 8082
+      SSO_RESOURCE_ALLOWED_CLIENT_IDS: e2e-portal
+      NACOS_ADDRESS: ${SSO_E2E_NACOS_ADDRESS:-nacos://101.201.153.254:8848}
+      NACOS_NAMESPACE: ${SSO_E2E_NACOS_NAMESPACE:-public}
+      NACOS_GROUP: ${SSO_E2E_NACOS_GROUP:-SSO_E2E}
+      DUBBO_REGISTRY_USE_AS_CONFIG_CENTER: "false"
+      DUBBO_REGISTRY_USE_AS_METADATA_CENTER: "false"
+      DUBBO_APPLICATION_METADATA_TYPE: local
+      DUBBO_APPLICATION_REGISTER_MODE: interface
+      DUBBO_REGISTRY_PARAMETERS_USERNAME: ${SSO_E2E_NACOS_USERNAME:-}
+      DUBBO_REGISTRY_PARAMETERS_PASSWORD: ${SSO_E2E_NACOS_PASSWORD:-}
+      JAVA_TOOL_OPTIONS: -Xms32m -Xmx160m -XX:MaxMetaspaceSize=120m -XX:ReservedCodeCacheSize=48m
+    ports:
+      - "127.0.0.1:28083:8082"
+    networks:
+      - e2e
+volumes:
+  mysql-data:
+  redis-data:
+  e2e-secrets:
+networks:
+  e2e:
+    driver: bridge

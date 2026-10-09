@@ -19,7 +19,9 @@
       if (!sessionResponse.ok) throw new Error('crypto session unavailable');
       const session = await sessionResponse.json();
       const client = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
-      const clientPublicKey = await crypto.subtle.exportKey('jwk', client.publicKey);
+      const exportedClientKey = await crypto.subtle.exportKey('jwk', client.publicKey);
+      const clientPublicKey = { kty: exportedClientKey.kty, crv: exportedClientKey.crv,
+        x: exportedClientKey.x, y: exportedClientKey.y };
       const serverPublicKey = await crypto.subtle.importKey('jwk', session.serverPublicKey, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
       const shared = await crypto.subtle.deriveBits({ name: 'ECDH', public: serverPublicKey }, client.privateKey, 256);
       const salt = await crypto.subtle.digest('SHA-256', text(`sso-login-v1|${session.sessionId}`));

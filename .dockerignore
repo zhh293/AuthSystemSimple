@@ -3,3 +3,13 @@
 !sso-server/
 !sso-server/target/
 !sso-server/target/sso-server-0.1.0-SNAPSHOT.jar
+!sso-example-rp/
+!sso-example-rp/target/
+!sso-example-rp/target/sso-example-rp-0.1.0-SNAPSHOT.jar
+!sso-resource-example/
+!sso-resource-example/target/
+!sso-resource-example/target/sso-resource-example-0.1.0-SNAPSHOT.jar
+!ops/
+!ops/e2e/
+!ops/e2e/Dockerfile-rp
+!ops/e2e/Dockerfile-resource

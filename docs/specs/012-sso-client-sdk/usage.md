@@ -54,7 +54,7 @@ SecurityFilterChain applicationSecurity(HttpSecurity http, SsoHttpSecurityConfig
 }
 ```
 
-The configurer permits only SDK login/callback GET and logout POST routes. Spring Security CSRF remains enabled; applications should render the normal CSRF token in their POST logout form. Protected route patterns must match the application's authorization policy. JSON/API requests receive 401; browser page requests redirect to the SDK login route. `/sso/status` is disabled by default and should be enabled only if the application needs it.
+The application must permit the SDK login, callback, and logout routes in its own authorization rules before the final `anyRequest` rule. The configurer installs the authentication filter and leaves authorization ownership to the application. Spring Security CSRF remains enabled; applications should render the normal CSRF token in their POST logout form. Protected route patterns must match the application's authorization policy. JSON/API requests receive 401; browser page requests redirect to the SDK login route. `/sso/status` is disabled by default and should be enabled only if the application needs it.
 
 The logout controller also requires the `CsrfToken` request attribute supplied by Spring Security. If CSRF is disabled in the host chain, logout returns 403 without clearing the user's cookie or local session.
 

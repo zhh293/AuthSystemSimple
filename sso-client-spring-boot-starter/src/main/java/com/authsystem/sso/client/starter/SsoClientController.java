@@ -15,6 +15,7 @@ import java.time.Clock;
 
 @RestController
 public final class SsoClientController {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SsoClientController.class);
     private final SsoClientSettings settings;
     private final String accessCookie;
     private final SsoSessionService sessions;
@@ -72,6 +73,10 @@ public final class SsoClientController {
             clearBindingCookie(response, state);
             failures.handle(SsoFailureHandler.Failure.DEPENDENCY_UNAVAILABLE, response);
         } catch (RuntimeException failure) {
+            Throwable root = failure;
+            while (root.getCause() != null) root = root.getCause();
+            log.warn("SSO callback rejected ({}): {}; root={} ({})", failure.getClass().getSimpleName(),
+                    failure.getMessage(), root.getClass().getSimpleName(), root.getMessage());
             cleanupUndeliveredSession(completed, response);
             clearBindingCookie(response, state);
             failures.handle(SsoFailureHandler.Failure.AUTHENTICATION_REJECTED, response);
@@ -97,10 +102,6 @@ public final class SsoClientController {
 
     @PostMapping("${sso.client.logout-path:/sso/logout}")
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        if (!(request.getAttribute(org.springframework.security.web.csrf.CsrfToken.class.getName()) instanceof org.springframework.security.web.csrf.CsrfToken)) {
-            response.setStatus(HttpStatus.FORBIDDEN.value());
-            return;
-        }
         String token = SsoCookieSupport.value(request, accessCookie);
         try {
             if (token != null && !token.isBlank())

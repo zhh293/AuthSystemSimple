@@ -4,5 +4,6 @@ target/
 .env
 *.log
 zhh2.pem
+ops/e2e/artifacts/
 .idea/
 .vscode/

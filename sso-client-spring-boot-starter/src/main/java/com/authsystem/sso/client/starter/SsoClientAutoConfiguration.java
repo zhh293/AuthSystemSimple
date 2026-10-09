@@ -186,8 +186,8 @@ public class SsoClientAutoConfiguration {
         registration.setEnabled(false);
         return registration;
     }
-    @Bean SsoHttpSecurityConfigurer ssoHttpSecurityConfigurer(SsoAuthenticationFilter filter, SsoClientSettings settings) {
-        return new SsoHttpSecurityConfigurer(filter, settings);
+    @Bean SsoHttpSecurityConfigurer ssoHttpSecurityConfigurer(SsoAuthenticationFilter filter) {
+        return new SsoHttpSecurityConfigurer(filter);
     }
     @Bean SsoClientController ssoClientController(SsoClientSettings s, SsoClientProperties p, SsoSessionService sessions,
         SsoCookieCustomizer cookies, SsoFailureHandler failures, @Qualifier("ssoClientClock") Clock clock) {

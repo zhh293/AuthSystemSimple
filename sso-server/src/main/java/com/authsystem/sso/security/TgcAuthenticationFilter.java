@@ -20,6 +20,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -45,6 +46,11 @@ public class TgcAuthenticationFilter extends OncePerRequestFilter {
 
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+        if (existing instanceof OAuth2ClientAuthenticationToken && existing.isAuthenticated()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         String tgc = readTgc(request);
         SessionView session;
         try {

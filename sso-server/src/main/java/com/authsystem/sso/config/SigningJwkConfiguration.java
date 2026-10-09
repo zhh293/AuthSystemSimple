@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.UUID;
 import com.nimbusds.jose.JWSAlgorithm;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +33,7 @@ public class SigningJwkConfiguration {
         boolean production = ProductionProfiles.isProduction(activeProfiles);
         List<JWK> keys = production
                 ? loadProductionKeys(properties)
-                : List.<JWK>of(generateDevelopmentKey());
+                : List.<JWK>of(generateDevelopmentKey(properties.getOidcKeyAlias()));
         JWKSet jwkSet = new JWKSet(keys);
         return (selector, context) -> selector.select(jwkSet);
     }
@@ -110,12 +109,12 @@ public class SigningJwkConfiguration {
         }
     }
 
-    private static RSAKey generateDevelopmentKey() throws Exception {
+    private static RSAKey generateDevelopmentKey(String keyId) throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();
         return new RSAKey.Builder((RSAPublicKey) pair.getPublic())
-                .privateKey((RSAPrivateKey) pair.getPrivate()).keyID(UUID.randomUUID().toString())
+                .privateKey((RSAPrivateKey) pair.getPrivate()).keyID(requireAlias(keyId))
                 .keyUse(KeyUse.SIGNATURE).algorithm(JWSAlgorithm.RS256).build();
     }
 }

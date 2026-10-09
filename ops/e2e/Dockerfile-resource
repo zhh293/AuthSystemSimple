@@ -1,0 +1,8 @@
+FROM eclipse-temurin:17-jre-jammy
+
+WORKDIR /app
+COPY sso-resource-example/target/sso-resource-example-0.1.0-SNAPSHOT.jar /app/app.jar
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid 10001 --home-dir /app --shell /usr/sbin/nologin app \
+    && chown -R app:app /app
+USER 10001:10001
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

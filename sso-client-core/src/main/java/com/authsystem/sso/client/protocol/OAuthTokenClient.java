@@ -174,7 +174,7 @@ public final class OAuthTokenClient {
 || hasCause(failure, SsoClientDependencyException.class)) {
             throw new SsoClientDependencyException("Token endpoint is unavailable", failure);
         }
-        throw new IllegalStateException("Token request was rejected", failure);
+        throw new IllegalStateException("Token request was rejected: " + failure.getError().getErrorCode(), failure);
     }
 
     private static boolean hasCause(Throwable failure, Class<? extends Throwable> type) {

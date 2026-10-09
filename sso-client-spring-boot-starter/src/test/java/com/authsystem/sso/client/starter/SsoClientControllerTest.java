@@ -6,7 +6,6 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.web.csrf.CsrfToken;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -17,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 class SsoClientControllerTest {
     @Test
@@ -48,26 +46,10 @@ class SsoClientControllerTest {
     }
 
     @Test
-    void logoutFailsClosedWhenSpringCsrfFilterDidNotProvideAToken() {
+    void logoutRevokesAndClearsAccessCookieAfterSecurityFilterValidation() {
         SsoSessionService sessions = mock(SsoSessionService.class);
         SsoClientController controller = controller(sessions);
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setCookies(new Cookie("portal_access_token", "access-value"));
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        controller.logout(request, response);
-
-        assertThat(response.getStatus()).isEqualTo(403);
-        assertThat(response.getHeader("Set-Cookie")).isNull();
-        verifyNoInteractions(sessions);
-    }
-
-    @Test
-    void logoutClearsLocalSessionOnlyAfterCsrfFilterProvidedAToken() {
-        SsoSessionService sessions = mock(SsoSessionService.class);
-        SsoClientController controller = controller(sessions);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setAttribute(CsrfToken.class.getName(), mock(CsrfToken.class));
         request.setCookies(new Cookie("portal_access_token", "access-value"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 

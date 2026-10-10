@@ -72,7 +72,7 @@ public class SecurityConfiguration {
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
                 .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; script-src 'self'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"))
                         .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
                 .addFilterBefore(tgcFilter, AnonymousAuthenticationFilter.class)
                 .addFilterBefore(loginCryptoFilter, AnonymousAuthenticationFilter.class)

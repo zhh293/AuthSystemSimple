@@ -56,13 +56,13 @@ public class SsoClientAutoConfiguration {
             s.getConnectTimeout(),
             s.getResponseTimeout(), s.getRefreshSkew(), s.getFamilyLifetime(), s.getScopes(), s.getProtectedPaths(),
             s.isSecureCookie(), s.isLocalStore(), hmac, enc, s.getRedisKeyPrefix());
-        if (p.issuer().startsWith("http://") && !java.net.URI.create(p.issuer()).getHost().equalsIgnoreCase("localhost"))
-            throw new IllegalArgumentException("HTTP issuer is permitted only for localhost development");
+        if (p.issuer().startsWith("http://") && !isLocalDevelopmentHost(java.net.URI.create(p.issuer()).getHost()))
+            throw new IllegalArgumentException("HTTP issuer is permitted only for loopback development");
         if (p.localStore() && environment.acceptsProfiles(org.springframework.core.env.Profiles.of("prod",
                     "production")))
             throw new IllegalArgumentException("Local token stores are forbidden in production profiles");
-        if (!p.secureCookie() && (!p.localStore() || !java.net.URI.create(p.issuer()).getHost().equalsIgnoreCase("localhost")))
-            throw new IllegalArgumentException("Insecure cookies are permitted only for explicit localhost development");
+        if (!p.secureCookie() && (!p.localStore() || !isLocalDevelopmentHost(java.net.URI.create(p.issuer()).getHost())))
+            throw new IllegalArgumentException("Insecure cookies are permitted only for explicit loopback development");
         java.net.URI callback = java.net.URI.create(p.callbackUri());
         if (!java.util.Objects.equals(callback.getPath(), s.getCallbackPath()))
             throw new IllegalArgumentException("redirect-uri path must exactly match callback-path");
@@ -94,6 +94,11 @@ public class SsoClientAutoConfiguration {
             s.getJwksStaleIfError() == null || s.getJwksStaleIfError().isNegative() || s.getJwksStaleIfError().compareTo(Duration.ofDays(1))>0)
             throw new IllegalArgumentException("SSO transaction, network, cache, refresh and family lifetimes are outside supported bounds");
         return p;
+    }
+
+    private static boolean isLocalDevelopmentHost(String host) {
+        return "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "[::1]".equals(host)
+                || "::1".equals(host);
     }
     @Bean(name = "ssoClientClock") Clock ssoClientClock() {
         return Clock.systemUTC();

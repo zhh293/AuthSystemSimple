@@ -29,12 +29,12 @@ public record SsoClientProperties(
             throw new IllegalArgumentException("callbackUri must use HTTP or HTTPS");
         }
         URI issuerUri = URI.create(issuer);
-        if ("http".equalsIgnoreCase(issuerUri.getScheme()) && (!localStore || !isLocalhost(issuerUri)))
-            throw new IllegalArgumentException("HTTP issuer is permitted only for localhost single-instance development");
+        if ("http".equalsIgnoreCase(issuerUri.getScheme()) && (!localStore || !isLoopback(issuerUri)))
+            throw new IllegalArgumentException("HTTP issuer is permitted only for loopback single-instance development");
         if ("http".equalsIgnoreCase(callback.getScheme()) && (!localStore || !isLocalhost(callback)))
             throw new IllegalArgumentException("HTTP callback is permitted only for localhost single-instance development");
-        if (!secureCookie && (!localStore || !isLocalhost(issuerUri) || !isLocalhost(callback)))
-            throw new IllegalArgumentException("Insecure cookies are permitted only for localhost single-instance development");
+        if (!secureCookie && (!localStore || !isLoopback(issuerUri) || !isLocalhost(callback)))
+            throw new IllegalArgumentException("Insecure cookies are permitted only for loopback single-instance development");
         requireText(cookieName, "cookieName");
         if (!cookieName.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}"))
             throw new IllegalArgumentException("Invalid cookieName");
@@ -75,6 +75,10 @@ public record SsoClientProperties(
     }
     private static boolean isLocalhost(URI uri) {
         return "localhost".equalsIgnoreCase(uri.getHost());
+    }
+    private static boolean isLoopback(URI uri) {
+        String host = uri.getHost();
+        return isLocalhost(uri) || "127.0.0.1".equals(host) || "::1".equals(host) || "[::1]".equals(host);
     }
     private static String normalizeIssuer(String value) {
         requireText(value, "issuer");

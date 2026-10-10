@@ -91,10 +91,10 @@ public final class SsoSessionService {
         if (code == null || code.isBlank() || code.length()>4096 || state == null || state.isBlank() ||
             state.length()>512)
             throw new IllegalArgumentException("Invalid authorization callback");
-        SsoAuthorizationTransaction tx = transactions.consume(state).orElseThrow(() -> new IllegalArgumentException("Authorization transaction is invalid or expired"));
+        SsoAuthorizationTransaction tx = transactions.consume(state).orElseThrow(() -> new IllegalArgumentException("Authorization transaction is missing or expired"));
         if (browserBinding == null || !constantTimeEquals(tx.browserBindingDigest(), TokenDigests.hmacSha256(browserBinding,
                     bindingKey)))
-            throw new IllegalArgumentException("Authorization transaction is invalid or expired");
+            throw new IllegalArgumentException("Authorization transaction browser binding is invalid");
         OAuthTokenClient.TokenResponse response = tokenClient.exchangeCode(code, tx.codeVerifier());
         SsoPrincipal principal;
         try {

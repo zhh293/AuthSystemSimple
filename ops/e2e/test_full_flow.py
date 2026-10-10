@@ -7,6 +7,7 @@ import re
 import secrets
 import time
 import warnings
+from urllib.parse import urljoin
 
 import pymysql
 import requests
@@ -199,16 +200,22 @@ def simulate_frontend_encryption(session, csrf_token, username, password):
     }
     encoded_body = json.dumps(encrypted, separators=(",", ":"))
     assert username not in encoded_body and password not in encoded_body
-    response = session.post(
+    submit_response = session.post(
         SSO_URL + "/login/submit",
         data=encoded_body,
         headers={"Content-Type": "application/json", "X-CSRF-TOKEN": csrf_token},
         timeout=TIMEOUT,
-        allow_redirects=True,
+        allow_redirects=False,
     )
-    submit_response = next((r for r in response.history if r.request.url.endswith("/login/submit")), None)
-    assert submit_response is not None
     assert submit_response.headers.get("Cache-Control", "").lower().find("no-store") >= 0
+    if submit_response.status_code == 204:
+        # A browser must perform this as a top-level navigation. Fetch cannot follow
+        # the cross-origin OAuth callback redirect due to CORS.
+        response = session.get(SSO_URL + "/login/continue", timeout=TIMEOUT, allow_redirects=True)
+    elif 300 <= submit_response.status_code < 400 and submit_response.headers.get("Location"):
+        response = session.get(urljoin(SSO_URL, submit_response.headers["Location"]), timeout=TIMEOUT, allow_redirects=True)
+    else:
+        response = submit_response
     assert response.status_code == 200, "simulated frontend login callback failed"
     return response
 

@@ -71,7 +71,7 @@ $env:SSO_CLIENT_SECRET = '<secret from local secret store>'
 mvn -pl sso-example-rp -am spring-boot:run
 ```
 
-The profile listens on `http://localhost:8082`, uses explicit in-memory single-instance stores, and disables Secure cookies only for localhost HTTP development. In-memory state and token records disappear on restart. Do not use this mode with multiple instances or in production. Visit `/profile` to exercise the protected route.
+The profile listens on `http://localhost:8082`, uses explicit in-memory single-instance stores, and disables Secure cookies only for localhost HTTP development. In-memory state and token records disappear on restart. Do not use this mode with multiple instances or in production. Open `http://localhost:8082` for the interactive SDK demo: it calls the protected `/profile` route, starts login through `/sso/login`, and performs CSRF-protected local logout. Register the exact callback `http://localhost:8082/sso/callback` with the issuer before starting it.
 
 ## Migration from the existing example
 

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="csrf-token" content="__CSRF_TOKEN__">
+  <meta name="csrf-header" content="__CSRF_HEADER__">
+  <title>单点登录体验台 · Northstar</title>
+  <link rel="stylesheet" href="/demo.css">
+  <script src="/demo.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Northstar 首页"><span class="brand-mark">N</span><span>NORTHSTAR <i>IDENTITY LAB</i></span></a>
+      <span class="local-badge"><span></span> LOCAL SDK DEMO</span>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">ONE IDENTITY · MANY APPS</p>
+        <h1>一次登录，<br><em>所有应用</em>都认识你。</h1>
+        <p class="intro">这是一个运行在本机的 SSO 客户端示例。点击登录后，你会前往认证中心；授权完成后回到这个应用，SDK 会在服务端验证身份并建立本地会话。</p>
+        <div class="actions">
+          <a class="button button-primary" id="login" href="/sso/login?returnTo=/">使用 SSO 登录 <span aria-hidden="true">↗</span></a>
+          <button class="button button-quiet" id="refresh" type="button">刷新身份状态</button>
+        </div>
+        <p class="hint">登录回调与令牌交换由 Spring Boot Starter 处理。浏览器不会接触 Refresh Token 或 ID Token。</p>
+      </div>
+
+      <aside class="identity-card" aria-live="polite">
+        <div class="card-top"><span>YOUR SESSION</span><span class="pulse" id="pulse"></span></div>
+        <div class="avatar" id="avatar">?</div>
+        <p class="state-label" id="state-label">正在检查登录状态</p>
+        <h2 id="user-name">访客</h2>
+        <p class="user-email" id="user-email">尚未建立应用会话</p>
+        <div class="divider"></div>
+        <div class="claim-row"><span>SUBJECT</span><code id="user-sub">—</code></div>
+        <button class="button button-outline" id="logout" type="button" hidden>退出当前应用</button>
+        <p class="logout-note" id="logout-note" hidden>这会撤销此应用的本地令牌映射；认证中心的全局会话仍可能有效。</p>
+      </aside>
+    </section>
+
+    <section class="steps" aria-label="登录过程">
+      <div class="section-heading"><span>THE FLOW</span><span>三步完成</span></div>
+      <div class="step-grid">
+        <article class="step"><span class="step-no">01</span><div><h3>跳转认证中心</h3><p>SDK 创建 state、nonce 与 PKCE 验证事务。</p></div></article>
+        <article class="step"><span class="step-no">02</span><div><h3>完成身份认证</h3><p>由 SSO 中心确认你的身份并签发授权码。</p></div></article>
+        <article class="step"><span class="step-no">03</span><div><h3>回到当前应用</h3><p>后端交换令牌，应用读取经过验证的用户信息。</p></div></article>
+      </div>
+    </section>
+    <footer><span>AUTHENTICATION, WITHOUT THE FRICTION.</span><span>SPRING BOOT CLIENT SDK · LOCAL MODE</span></footer>
+  </main>
+</body>
+</html>

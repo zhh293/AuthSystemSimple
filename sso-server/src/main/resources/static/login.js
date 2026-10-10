@@ -34,7 +34,7 @@
       const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad, tagLength: 128 }, aesKey, plaintext));
       const body = { version: 'v1', sessionId: session.sessionId, keyId: session.keyId, clientPublicKey, requestId, timestamp, nonce: b64(nonce), ciphertext: b64(encrypted.slice(0, -16)), tag: b64(encrypted.slice(-16)) };
       const response = await fetch('/login/submit', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.value }, body: JSON.stringify(body) });
-      if (response.redirected) window.location.assign(response.url); else window.location.assign('/login?error=true');
+      if (response.ok) window.location.assign('/login/continue'); else window.location.assign('/login?error=true');
     } catch (error) { window.location.assign('/login?error=true'); }
   });
 })();

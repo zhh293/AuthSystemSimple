@@ -2,6 +2,7 @@ target/
 **/target/
 .maven-cache/
 .env
+.env.local-demo
 *.log
 zhh2.pem
 ops/e2e/artifacts/

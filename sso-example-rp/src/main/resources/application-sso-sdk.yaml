@@ -12,7 +12,6 @@ sso:
       - openid
       - profile
       - email
-      - resource.read
     family-lifetime: ${SSO_REFRESH_FAMILY_LIFETIME:30d}
     refresh-skew: ${SSO_REFRESH_SKEW:30s}
     protected-paths:
@@ -28,6 +27,7 @@ sso:
       - /sso/logout
     status-enabled: true
 server:
+  address: ${SSO_RP_ADDRESS:127.0.0.1}
   port: 8082
 spring:
   security:

@@ -120,6 +120,22 @@ public class LoginController {
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        // The login form submits with fetch(). Following the normal OAuth redirect here
+        // would make the browser follow a cross-origin redirect inside fetch, which is
+        // blocked by CORS. Let the page navigate to /login/continue after this response;
+        // the top-level navigation can safely resume the saved authorization request.
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+    }
+
+    @GetMapping("/login/continue")
+    public void continueLogin(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            response.sendRedirect(request.getContextPath() + "/login?error=true");
+            return;
+        }
         new SavedRequestAwareAuthenticationSuccessHandler().onAuthenticationSuccess(request, response, authentication);
     }
 
